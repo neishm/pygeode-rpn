@@ -43,10 +43,5 @@ with warnings.catch_warnings():
   data = rpn.open(rpnfile)
 
   # Write to netcdf
-  try:
-    nc.save(ncfile, data, version=3)
-  except AssertionError:
-    print "An error occurred while writing to a version 3 file."
-    print "Attempting to write a version 4 file instead."
-    nc.save(ncfile, data, version=4)
+  nc.save(ncfile, data)
 
