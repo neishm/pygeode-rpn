@@ -2,6 +2,9 @@
 
 typedef unsigned char byte;
 
+// Read a 64-bit integer from a buffer
+unsigned long long read64 (byte *b);
+
 // Read a 32-bit integer from a buffer
 unsigned int read32 (byte *b);
 

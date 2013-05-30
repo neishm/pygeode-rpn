@@ -3,6 +3,11 @@
 #include <assert.h>
 #include "io.h"
 
+// Read a 64-bit integer from a buffer
+unsigned long long read64 (byte *b) {
+  return (((unsigned long long)(b[0]))<<56) | (((unsigned long long)(b[1]))<<48) | (((unsigned long long)(b[2]))<<40) | (((unsigned long long)(b[3]))<<32) | (((unsigned long long)(b[4]))<<24) | (((unsigned long long)(b[5]))<<16) | (((unsigned long long)(b[6]))<<8) | (((unsigned long long)(b[7]))<<0);
+}
+
 // Read a 32-bit integer from a buffer
 unsigned int read32 (byte *b) {
   return (((unsigned int)(b[0]))<<24) | (((int)(b[1]))<<16) | (((int)(b[2]))<<8) | (((int)(b[3]))<<0);

@@ -149,7 +149,11 @@ class RPN_Var (Var):
     self.headers = headers
     self.header_order = header_order
 
-    Var.__init__ (self, [t,f,z,k,j,i], name=name, atts=atts, dtype='float32')
+    # Determine the data type to use
+    if headers[0].npak <= 32: dtype = 'float32'
+    else: dtype = 'float64'
+
+    Var.__init__ (self, [t,f,z,k,j,i], name=name, atts=atts, dtype=dtype)
 
   from pygeode.tools import need_full_axes
   @need_full_axes(I,J,K)
@@ -264,6 +268,12 @@ from pygeode.axis import Hybrid
 # GEM4 coordinate - hybrid in log(pressure) coordinates
 class LogHybrid (ZAxis):
   name = 'zeta'
+  plotatts = ZAxis.plotatts.copy()
+  plotatts['formatstr'] = '%g'
+  plotatts['plotorder'] = -1
+  plotatts['plotscale'] = 'linear'
+  def __init__ (self, values, A, B, **kwargs):
+    ZAxis.__init__ (self, values, A=A, B=B, **kwargs)
 
 class Theta (ZAxis): pass
 
@@ -362,6 +372,7 @@ def decode_ip1 (ip1):
 # Helper method - decode the vertical coordinate (ip1)
 def decode_zcoord (varlist):
   import numpy as np
+  from warnings import warn
 
   # The HY record has no dimensionality of its own, so we can't create
   # particular axes until we match it to particular variables.
@@ -405,8 +416,44 @@ def decode_zcoord (varlist):
      # Match GEM4 vertical coordinate ('!!')
      for bangcoord in bangcoords:
       if v.atts['ig1'] == bangcoord.atts['ip1'] and v.atts['ig2'] == bangcoord.atts['ip2'] and v.atts['ig3'] == bangcoord.atts['ip3']:
-        zcoord = LogHybrid(zcoord.values)
-        #TODO: Decode A and B
+        # Decode A and B
+        A=zcoord.values*0  # Defaults, in case decoding fails.
+        B=zcoord.values*0
+        table = bangcoord.get().squeeze()
+        kind = int(round(table[0,0]))
+        version = int(round(table[0,1]))
+        skip = int(round(table[0,2]))
+        vcode = kind*1000+version
+        if vcode != 5002:
+          warn ("Can only handle vertical descriptor verion 5002 (found %d)"%vcode)
+          zcoord = LogHybrid(zcoord.values, A, B)
+          continue
+
+        # Get thermodynamic and momentum levels
+        nk = (len(table)-3-skip)/2
+        ip1_m = decode_ip1(map(int,table[skip:skip+nk+1,0]))
+        a_m   = table[skip:skip+nk+1,1]
+        b_m   = table[skip:skip+nk+1,2]
+        ip1_t = decode_ip1(map(int,table[skip+nk+1:skip+2*nk+3,0]))
+        a_t   = table[skip+nk+1:skip+2*nk+3,1]
+        b_t   = table[skip+nk+1:skip+2*nk+3,2]
+
+        # Concatenate
+        A = np.concatenate([a_m,a_t])
+        B = np.concatenate([b_m,b_t])
+        ip1 = np.concatenate([ip1_m,ip1_t])
+
+        if not set(zcoord.values) <= set(ip1):
+          warn ("Unusual ip1 values encountered in %s that don't match the !! record."%v.name)
+          zcoord = LogHybrid(zcoord.values, A, B)
+          continue
+
+        # Pick out the values we need
+        ind = [np.where(ip1==z)[0][0] for z in zcoord.values]
+        A = A[ind]
+        B = B[ind]
+
+        zcoord = LogHybrid(zcoord.values, A=A,B=B)
 
     # Other vertical coordinates (easy case)
     else:

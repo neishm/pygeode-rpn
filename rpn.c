@@ -232,8 +232,8 @@ int read_data (char *filename, int nrecs, RecordHeader *headers, int recsize, fl
       assert (read32(b) == 0);
 
       // Easiest case: 32-bit IEEE float
-      if (h.datyp == 5) {
-        assert (h.npak == 32);  // must be 32-bit?!
+      if (h.datyp == 5) assert (h.npak == 32 || h.npak == 64);
+      if (h.datyp == 5 && h.npak == 32) {
         assert (sizeof(float) == sizeof(uint32_t));
         byte *raw = malloc(4*recsize);
         fread (raw, 4, recsize, file);
@@ -241,10 +241,16 @@ int read_data (char *filename, int nrecs, RecordHeader *headers, int recsize, fl
           ((uint32_t*)(out))[i] = read32(raw+4*i);
         }
         free(raw);
-//        for (int i = 0; i < recsize; i++) {
-//          printf ("%g  ", out[i]);
-//        }
-//        printf ("\n");
+      }
+      // Another easy case: 64-bit IEEE float
+      else if (h.datyp == 5 && h.npak == 64) {
+        assert (sizeof(double) == sizeof(uint64_t));
+        byte *raw = malloc(8*recsize);
+        fread (raw, 8, recsize, file);
+        for (int i = 0; i < recsize; i++) {
+          ((uint64_t*)(out))[i] = read64(raw+8*i);
+        }
+        free(raw);
       }
 
       // Compressed?
