@@ -20,6 +20,7 @@ extern int c_fstecr (void*, void*, int, int, int, int, int, int, int, int, int, 
 extern int f77name(newdate) (int*, int*, int*, int*);
 extern void f77name(convip)(int*, float*, int*, int*, char*, int*);
 extern int f77name(ig_to_hybref)(int*, int*, int*, int*, float*, float*, float*, float*);
+extern int f77name(hybref_to_ig)(int*, int*, int*, int*, float*, float*, float*, float*);
 extern void f77name(cxgaig)(char*, int*, int*, int*, int*, float*, float*, float*, float*);
 extern void f77name(cigaxg)(char*, float*, float*, float*, float*, int*, int*, int*, int*);
 extern int c_ezqkdef(int ni, int nj, char *grtyp, 
@@ -457,7 +458,7 @@ static PyObject *get_hybrid_a_b (PyObject *self, PyObject *args) {
     *a = pref * (eta - *b);
   }
 
-  PyObject *ref = Py_BuildValue("(O,O)", A, B);
+  PyObject *ref = Py_BuildValue("(f,f,f,O,O)", ptop, rcoef, pref, A, B);
   Py_DECREF(A);
   Py_DECREF(B);
   Py_DECREF(hy_record);
@@ -599,6 +600,89 @@ static PyObject *get_loghybrid_a_b (PyObject *self, PyObject *args) {
   Py_DECREF(A);
   Py_DECREF(B);
   return ret;
+}
+
+
+// make_hy_record(eta.values,eta.A,eta.B)
+static PyObject *make_hy_record (PyObject *self, PyObject *args) {
+  PyObject *ETA_obj, *A_obj, *B_obj;
+  PyArrayObject *ETA, *A, *B;
+  float *eta, *a, *b;
+  int i;
+
+  if (!PyArg_ParseTuple(args, "OOO", &ETA_obj, &A_obj, &B_obj)) return NULL;
+  ETA = (PyArrayObject*)PyArray_ContiguousFromAny(ETA_obj,NPY_FLOAT32,1,1);
+  A = (PyArrayObject*)PyArray_ContiguousFromAny(A_obj,NPY_FLOAT32,1,1);
+  B = (PyArrayObject*)PyArray_ContiguousFromAny(B_obj,NPY_FLOAT32,1,1);  
+
+  int n = PyArray_SIZE(ETA);
+  if (n != PyArray_SIZE(A)) return NULL;
+  if (n != PyArray_SIZE(B)) return NULL;
+
+  eta = (float*)ETA->data;
+  a = (float*)A->data;
+  b = (float*)B->data;
+
+  //TODO: check that we have at least 2 levels
+
+
+  // Solve for etatop
+  float etatop = eta[0];
+  float r;
+  for (i = 0; i < 10; i++) {
+    double logb1 = log(b[1]);
+    double logb2 = log(b[2]);
+    double r1 = logb1 / log((eta[1]-etatop)/(1-etatop));
+    double r2 = logb2 / log((eta[2]-etatop)/(1-etatop));
+//    printf ("r1 = %g; r2 = %g\n", r1, r2);
+    double f = 1/r1 - 1/r2;
+    double fprime1 = 1/(1-etatop) - 1/(eta[1]-etatop);
+    double fprime2 = 1/(1-etatop) - 1/(eta[2]-etatop);
+    double fprime = fprime1/logb1 - fprime2/logb2;
+    etatop -= f / fprime;
+    r = (r1+r2)/2;
+//    printf ("etatop: %g; r: %g\n", etatop, r);
+  }
+
+  float pref = *a / (*eta - *b);
+  float ptop = etatop * pref;
+//  printf ("pref: %g; ptop: %g\n", pref, ptop);
+
+  // Encode in a record
+  Py_INCREF(descr);
+  npy_intp dims[] = {1};
+  PyArrayObject *record = (PyArrayObject*) PyArray_SimpleNewFromDescr (1, dims, descr);
+  if (record == NULL) return NULL;
+
+  HEADER *hy = (HEADER*)record->data;
+
+  // Encode IG1, IG2, IG3, IG4
+  {
+    float x1, x2;
+    f77name(hybref_to_ig)(&hy->ig1, &hy->ig2, &hy->ig3, &hy->ig4, &r, &pref, &x1, &x2);
+  }
+
+  // Encode ptop
+  {
+    int kind = 5, mode = 2, flag = 0;
+    f77name(convip)(&hy->ip1, &ptop, &kind, &mode, "", &flag);
+  }
+
+  // Other parameters
+  hy->ni = 1;
+  hy->nj = 1;
+  hy->nk = 1;
+
+  // TODO: degenerate data function (return a single zero)
+  // or, do this in Python (easier)
+
+  // Clean up local arrays
+  Py_DECREF(ETA);
+  Py_DECREF(A);
+  Py_DECREF(B);
+
+  return (PyObject*)record;
+
 }
 
 // Helper methods - find a coordinate record for the given field
@@ -807,6 +891,7 @@ static PyMethodDef FST_Methods[] = {
   {"get_hybrid_a_b", get_hybrid_a_b, METH_VARARGS, "Get A and B arrays from HY record and specified levels"},
   {"get_loghybrid_table", get_loghybrid_table, METH_VARARGS, "Get info table from !! record"},
   {"get_loghybrid_a_b", get_loghybrid_a_b, METH_VARARGS, "Get A and B from table and specific ip1 values"},
+  {"make_hy_record", make_hy_record, METH_VARARGS, "Construct an HY record from the given eta, a, and b arrays"},
   {"get_latlon", get_latlon, METH_VARARGS, "Create lat/lon arrays from the given records"},
   {NULL, NULL, 0, NULL}
 };
