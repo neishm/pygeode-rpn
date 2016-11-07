@@ -228,7 +228,7 @@ def attach_vertical_axes (varlist, vertical_records):
     elif kind == 5:
       # Find a vertical record that matches
       # First, look for a !! record
-      match = (vertical_records['ip1'] == var.atts['ig1']) & (vertical_records['ip2'] == var.atts['ig2']) & (vertical_records['ip3'] == var.atts['ig3'])
+      match = (vertical_records['ip1'] == var.atts['ig1']) & (vertical_records['ip2'] == var.atts['ig2'])
       if any(match):
         bangbang_record = vertical_records[match]
         key = int(bangbang_record['ip1'][0]), int(bangbang_record['ip2'][0]), int(bangbang_record['ip3'][0])
