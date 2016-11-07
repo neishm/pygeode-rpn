@@ -596,8 +596,8 @@ static PyObject *decode_loghybrid_table (PyObject *self, PyObject *args) {
   table = (double*)table_array->data;
   kind = table[0];
   version = table[1];
-  if (kind != 5 || version != 2) {
-    PyErr_Format (PyExc_ValueError, "Only support kind = 5, version = 2.  Found: kind = %i, version = %i", kind, version);
+  if (kind != 5){
+    PyErr_Format (PyExc_ValueError, "Only support kind = 5.  Found: kind = %i", kind);
     return NULL;
   }
   ptop = table[3];
