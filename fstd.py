@@ -319,7 +319,12 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False)
 #  all_keys = records[unique_var_atts]
   # Above doesn't work in numpy >= 1.8, due to a bug when using record arrays
   # that contain object fields (http://github.com/numpy/numpy/issues/3256)
-  all_keys = np.array(zip(*[records[a] for a in unique_var_atts]),dtype=[(a,records.dtype[a]) for a in unique_var_atts])
+  all_keys = [records[a] for a in unique_var_atts]
+  # Hack in the level kind as a additional criteria for matching.
+  levels, kind = fstd_core.decode_levels_v2(records['ip1'])
+  all_keys.append(kind)
+  all_keys = zip(*all_keys)
+  all_keys = np.array(all_keys,dtype=[(a,records.dtype[a]) for a in unique_var_atts]+[('kind',int)])
   unique_keys, var_indices = np.unique(all_keys, return_inverse=True)
 
   var_bins = [ records[var_indices==i] for i in range(len(unique_keys)) ]

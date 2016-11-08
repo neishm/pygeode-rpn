@@ -487,6 +487,41 @@ static PyObject *decode_levels (PyObject *self, PyObject *args) {
   return ret;
 }
 
+// Decode vertical levels (from future version with kind as an array)
+static PyObject *decode_levels_v2 (PyObject *self, PyObject *args) {
+  PyObject *ip1_obj;
+  PyArrayObject *ip1_array, *z_array, *kind_array;
+  float *z;
+  int *ip1, *kind, mode = -1, flag = 0;
+  int i;
+  npy_intp n;
+  if (!PyArg_ParseTuple(args, "O", &ip1_obj)) return NULL;
+  ip1_array = (PyArrayObject*)PyArray_ContiguousFromAny(ip1_obj,NPY_INT,0,0);
+  if (ip1_array == NULL) return NULL;
+  n = PyArray_SIZE(ip1_array);
+  z_array = (PyArrayObject*)PyArray_SimpleNew(1, &n, NPY_FLOAT32);
+  if (z_array == NULL) {
+    Py_DECREF(ip1_array);
+    return NULL;
+  }
+  kind_array = (PyArrayObject*)PyArray_SimpleNew(1, &n, NPY_INT);
+  if (kind_array == NULL) {
+    Py_DECREF(ip1_array);
+    return NULL;
+  }
+  ip1 = (int*)ip1_array->data;
+  z = (float*)z_array->data;
+  kind = (int*)kind_array->data;
+  for (i = 0; i < n; i++) {
+    f77name(convip)(ip1++, z++, kind++, &mode, "", &flag);
+  }
+  PyObject *ret = Py_BuildValue("(O,O)", z_array, kind_array);
+  Py_DECREF (ip1_array);
+  Py_DECREF (z_array);
+  Py_DECREF (kind_array);
+  return ret;
+}
+
 // Encode vertical levels
 static PyObject *encode_levels (PyObject *self, PyObject *args) {
   PyObject *z_obj;
@@ -1187,6 +1222,7 @@ static PyMethodDef FST_Methods[] = {
   {"stamp2date", stamp2date, METH_VARARGS, "Convert CMC timestamps to seconds since 1980-01-01 00:00:00"},
   {"date2stamp", date2stamp, METH_VARARGS, "Convert seconds since 1980-01-01 00:00:00 to a CMC timestamp"},
   {"decode_levels", decode_levels, METH_VARARGS, "Decode vertical levels"},
+  {"decode_levels_v2", decode_levels_v2, METH_VARARGS, "Decode vertical levels (from future version where 'kind' is an array)"},
   {"encode_levels", encode_levels, METH_VARARGS, "Encode vertical levels"},
   {"get_hybrid_a_b", get_hybrid_a_b, METH_VARARGS, "Get A and B arrays from HY record and specified levels"},
   {"decode_loghybrid_table", decode_loghybrid_table, METH_VARARGS, "Get info table from !! record"},
