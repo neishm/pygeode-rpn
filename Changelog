@@ -1,3 +1,9 @@
+Version 1.1.8 (Nov 8, 2016)
+	* Some compatibility fixes for GEM 4.8 files:
+	  - Less stringent matching for !! records.
+	  - Allow any vgrid "version" for kind=5.
+	  - Don't group records with different level "kind" values.
+
 Version 1.1.7 (Oct 4, 2016)
 	* In fstd2nc, when selecting particular variables to convert to netCDF,
 	  make sure any associated 2D lat/lon fields are included.
