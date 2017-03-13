@@ -1,8 +1,11 @@
-Version 2.0.0 (UNRELEASED)
+Version 2.0.0 (Mar 13, 2017)
 	* Removed old "rpn" module, which has been superceded by the "fstd"
 	  module.
 	* Removed --old-output-style option for fstd2nc.
 	* Added --time-units option for fstd2nc.
+	* Some support for masked data.
+	* Some support for 'X' and 'Y' grids.
+	* Use simpler hash algorithm for generating ipX/igX keys.
 
 Version 1.1.7 (Oct 4, 2016)
 	* In fstd2nc, when selecting particular variables to convert to netCDF,

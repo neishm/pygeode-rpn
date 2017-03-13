@@ -63,6 +63,7 @@ print "Found variables:", ' '.join(d.name for d in data)
 
 # Modify the time axis to have the appropriate units.
 def fix_time (var):
+  if not var.hasaxis('time'): return var
   new_time = type(var.time)(units=args.time_units, startdate=var.time.startdate, **var.time.auxarrays)
   return var.replace_axes(time=new_time)
 data = map(fix_time,data)
