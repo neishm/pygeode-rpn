@@ -1105,6 +1105,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
         gdid = c_ezqkdef (ni, nj, grtyp, ig1, ig2, ig3, ig4, 0);
         break;
       case 'X':
+      case 'Y':
         // Should already have the 2D lat/lon fields, so no gdid needed.
         gdid = -1;
         break;
@@ -1119,7 +1120,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
     PyArrayObject *lon = (PyArrayObject*)PyArray_SimpleNew (2, dims, NPY_FLOAT32);
 
     // Special case is X grid, where we read the lat/lon directly.
-    if (*grtyp == 'X') {
+    if (*grtyp == 'X' || *grtyp == 'Y') {
       int xrec = find_xrec (records, num_records, i);
       int yrec = find_yrec (records, num_records, i);
       if (xrec < 0 || yrec < 0) {
