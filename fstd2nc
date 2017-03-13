@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+# Disable X-windows stuff, so this script will work on headless machines.
+try:
+  import matplotlib
+  matplotlib.use('Agg')
+except ImportError: pass
+
 from sys import argv, exit, stdout
 from os.path import exists
 from pygeode.formats import netcdf, fstd
