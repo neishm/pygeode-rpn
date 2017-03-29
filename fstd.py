@@ -1,3 +1,23 @@
+###############################################################################
+# Copyright 2017 - Climate Research Division
+#                  Environment and Climate Change Canada
+#
+# This file is part of the "PyGeode-RPN" package.
+#
+# "PyGeode-RPN" is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# "PyGeode-RPN" is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with "PyGeode-RPN".  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+
 
 from pygeode.axis import Axis, XAxis, YAxis, ZAxis, Lat, Lon, Hybrid, Pres
 from pygeode.timeaxis import StandardTime
@@ -269,7 +289,7 @@ def attach_vertical_axes (varlist, vertical_records):
     elif kind == 5:
       # Find a vertical record that matches
       # First, look for a !! record
-      match = (vertical_records['ip1'] == var.atts['ig1']) & (vertical_records['ip2'] == var.atts['ig2']) & (vertical_records['ip3'] == var.atts['ig3'])
+      match = (vertical_records['ip1'] == var.atts['ig1']) & (vertical_records['ip2'] == var.atts['ig2'])
       if any(match):
         bangbang_record = vertical_records[match]
         key = int(bangbang_record['ip1'][0]), int(bangbang_record['ip2'][0]), int(bangbang_record['ip3'][0])
@@ -364,7 +384,12 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
 #  all_keys = records[unique_var_atts]
   # Above doesn't work in numpy >= 1.8, due to a bug when using record arrays
   # that contain object fields (http://github.com/numpy/numpy/issues/3256)
-  all_keys = np.array(zip(*[records[a] for a in unique_var_atts]),dtype=[(a,records.dtype[a]) for a in unique_var_atts])
+  all_keys = [records[a] for a in unique_var_atts]
+  # Hack in the level kind as a additional criteria for matching.
+  levels, kind = fstd_core.decode_levels_v2(records['ip1'])
+  all_keys.append(kind)
+  all_keys = zip(*all_keys)
+  all_keys = np.array(all_keys,dtype=[(a,records.dtype[a]) for a in unique_var_atts]+[('kind',int)])
   unique_keys, var_indices = np.unique(all_keys, return_inverse=True)
 
   var_bins = [ records[var_indices==i] for i in range(len(unique_keys)) ]

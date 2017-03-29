@@ -1,3 +1,23 @@
+/******************************************************************************
+* Copyright 2017 - Climate Research Division
+*                  Environment and Climate Change Canada
+*
+* This file is part of the "PyGeode-RPN" package.
+*
+* "PyGeode-RPN" is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* "PyGeode-RPN" is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License
+* along with "PyGeode-RPN".  If not, see <http://www.gnu.org/licenses/>.
+******************************************************************************/
+
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <stdio.h>
@@ -487,6 +507,41 @@ static PyObject *decode_levels (PyObject *self, PyObject *args) {
   return ret;
 }
 
+// Decode vertical levels (from future version with kind as an array)
+static PyObject *decode_levels_v2 (PyObject *self, PyObject *args) {
+  PyObject *ip1_obj;
+  PyArrayObject *ip1_array, *z_array, *kind_array;
+  float *z;
+  int *ip1, *kind, mode = -1, flag = 0;
+  int i;
+  npy_intp n;
+  if (!PyArg_ParseTuple(args, "O", &ip1_obj)) return NULL;
+  ip1_array = (PyArrayObject*)PyArray_ContiguousFromAny(ip1_obj,NPY_INT,0,0);
+  if (ip1_array == NULL) return NULL;
+  n = PyArray_SIZE(ip1_array);
+  z_array = (PyArrayObject*)PyArray_SimpleNew(1, &n, NPY_FLOAT32);
+  if (z_array == NULL) {
+    Py_DECREF(ip1_array);
+    return NULL;
+  }
+  kind_array = (PyArrayObject*)PyArray_SimpleNew(1, &n, NPY_INT);
+  if (kind_array == NULL) {
+    Py_DECREF(ip1_array);
+    return NULL;
+  }
+  ip1 = (int*)ip1_array->data;
+  z = (float*)z_array->data;
+  kind = (int*)kind_array->data;
+  for (i = 0; i < n; i++) {
+    f77name(convip)(ip1++, z++, kind++, &mode, "", &flag);
+  }
+  PyObject *ret = Py_BuildValue("(O,O)", z_array, kind_array);
+  Py_DECREF (ip1_array);
+  Py_DECREF (z_array);
+  Py_DECREF (kind_array);
+  return ret;
+}
+
 // Encode vertical levels
 static PyObject *encode_levels (PyObject *self, PyObject *args) {
   PyObject *z_obj;
@@ -596,8 +651,8 @@ static PyObject *decode_loghybrid_table (PyObject *self, PyObject *args) {
   table = (double*)table_array->data;
   kind = table[0];
   version = table[1];
-  if (kind != 5 || version != 2) {
-    PyErr_Format (PyExc_ValueError, "Only support kind = 5, version = 2.  Found: kind = %i, version = %i", kind, version);
+  if (kind != 5){
+    PyErr_Format (PyExc_ValueError, "Only support kind = 5.  Found: kind = %i", kind);
     return NULL;
   }
   ptop = table[3];
@@ -1220,6 +1275,7 @@ static PyMethodDef FST_Methods[] = {
   {"stamp2date", stamp2date, METH_VARARGS, "Convert CMC timestamps to seconds since 1980-01-01 00:00:00"},
   {"date2stamp", date2stamp, METH_VARARGS, "Convert seconds since 1980-01-01 00:00:00 to a CMC timestamp"},
   {"decode_levels", decode_levels, METH_VARARGS, "Decode vertical levels"},
+  {"decode_levels_v2", decode_levels_v2, METH_VARARGS, "Decode vertical levels (from future version where 'kind' is an array)"},
   {"encode_levels", encode_levels, METH_VARARGS, "Encode vertical levels"},
   {"get_hybrid_a_b", get_hybrid_a_b, METH_VARARGS, "Get A and B arrays from HY record and specified levels"},
   {"decode_loghybrid_table", decode_loghybrid_table, METH_VARARGS, "Get info table from !! record"},
