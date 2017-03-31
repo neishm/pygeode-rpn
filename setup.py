@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import numpy as np
 
 # Extension modules
@@ -8,9 +8,10 @@ fstd_core = Extension ('pygeode.formats.fstd_core', sources=['fstd_core.c'], lib
 
 # PyGeode installation script
 
-setup (	name="python-pygeode-rpn",
+setup (	name="pygeode-rpn",
 	version="2.0.0",
         author="Mike Neish",
+        install_requires=['pygeode'],
 	ext_modules=[fstd_core],
         include_dirs = [np.get_include()],
 	packages=["pygeode.formats"],
