@@ -344,13 +344,15 @@ def reduce_dimensionality (var, squash_forecasts=False):
 # Open a file for read access.  Returns a generic 'Dataset' object.
 #
 #####################################################################
-def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False, fill_value=1e30):
+def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False, fill_value=1e30, ignore_etiket=False):
 
   from pygeode.formats import fstd_core
   import numpy as np
 
   # What header attributes define a unique variable
   unique_var_atts = ['nomvar', 'typvar', 'etiket', 'ni', 'nj', 'nk', 'grtyp', 'ip3', 'ig1', 'ig2', 'ig3', 'ig4']
+  if ignore_etiket:
+    unique_var_atts.remove('etiket')
 
   # Read the records
   records = fstd_core.read_records(filename)
