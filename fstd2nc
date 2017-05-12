@@ -42,7 +42,27 @@ parser.add_argument('--squash-forecasts', action='store_true', help='Use the dat
 parser.add_argument('--ignore-etiket', action='store_true', help='Tells the converter to ignore the etiket when deciding if two records are part of the same field.  Default is to split the variable on different etikets.')
 parser.add_argument('--time-units', choices=['seconds','minutes','hours','days'], default='seconds', help='The units for the time axis for the output file.')
 parser.add_argument('--nc-version', type=int, choices=[3,4], default=3, help='The version of netCDF format to use.  Default is %(default)s.')
+parser.add_argument('--backend', choices=['pygeode','rpnpy'], default='pygeode', help='Which backend to use for converting the file.  Different backends may use different conventions for the netCDF metadata.  Default is %(default)s.')
 args = parser.parse_args()
+
+# Check if the rpnpy backend is requested, and if so, pass control to that
+# converter.
+if args.backend == 'rpnpy':
+  from sys import argv
+  # Strip --backend out of arg list
+  for i,arg in list(enumerate(argv)):
+    # Remove 2nd argument (if passed as --backend XYZ)
+    if arg == '--backend':
+      argv.pop(i+1)
+    # Remove --backend flag
+    if arg.startswith('--backend'):
+      argv.pop(i)
+      break
+  # Pass control to other converter.
+  import fstd2nc
+  fstd2nc._fstd2nc_cmdline()
+  quit()
+
 
 if args.vars is not None:
   selected_vars = args.vars.split(',')

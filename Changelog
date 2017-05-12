@@ -1,6 +1,7 @@
 Version 2.1.0 (UNRELEASED)
 	* Command-line option to control netCDF version for output files.
 	* Option to ignore etiket when grouping records together.
+	* Option to switch to rpnpy backend (using new fstd2nc package).
 
 Version 2.0.0 (Mar 13, 2017)
 	* Removed old "rpn" module, which has been superceded by the "fstd"
