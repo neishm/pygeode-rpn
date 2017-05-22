@@ -48,16 +48,6 @@ args = parser.parse_args()
 # Check if the rpnpy backend is requested, and if so, pass control to that
 # converter.
 if args.backend == 'rpnpy':
-  from sys import argv
-  # Strip --backend out of arg list
-  for i,arg in list(enumerate(argv)):
-    # Remove 2nd argument (if passed as --backend XYZ)
-    if arg == '--backend':
-      argv.pop(i+1)
-    # Remove --backend flag
-    if arg.startswith('--backend'):
-      argv.pop(i)
-      break
   # Pass control to other converter.
   import fstd2nc
   fstd2nc._fstd2nc_cmdline()
