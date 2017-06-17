@@ -31,7 +31,7 @@ from sys import argv, exit, stdout
 from os.path import exists
 from pygeode.formats import netcdf, fstd
 from pygeode.dataset import asdataset
-from argparse import ArgumentParser
+from argparse import ArgumentParser, FileType
 
 # Extract keyword options
 parser = ArgumentParser(description="Converts an RPN standard file (FSTD) to netCDF format.")
@@ -42,6 +42,7 @@ parser.add_argument('--squash-forecasts', action='store_true', help='Use the dat
 parser.add_argument('--ignore-etiket', action='store_true', help='Tells the converter to ignore the etiket when deciding if two records are part of the same field.  Default is to split the variable on different etikets.')
 parser.add_argument('--time-units', choices=['seconds','minutes','hours','days'], default='seconds', help='The units for the time axis for the output file.')
 parser.add_argument('--nc-version', type=int, choices=[3,4], default=3, help='The version of netCDF format to use.  Default is %(default)s.')
+parser.add_argument('--metadata-file', type=FileType('r'), action='append', help='Apply netCDF metadata from the specified file.')
 parser.add_argument('--backend', choices=['pygeode','rpnpy'], default='pygeode', help='Which backend to use for converting the file.  Different backends may use different conventions for the netCDF metadata.  Default is %(default)s.')
 args = parser.parse_args()
 
@@ -59,6 +60,20 @@ if args.vars is not None:
   print 'Looking for variables:', ' '.join(selected_vars)
 else:
   selected_vars = None
+
+# Read metadata from a file?
+from collections import OrderedDict
+import ConfigParser
+if args.metadata_file is None:
+  metafiles = []
+else:
+  metafiles = args.metadata_file
+metadata = OrderedDict()
+configparser = ConfigParser.SafeConfigParser()
+for metafile in metafiles:
+  configparser.readfp(metafile)
+for varname in configparser.sections():
+  metadata[varname] = OrderedDict(configparser.items(varname))
 
 
 # Make sure input file exists
@@ -99,6 +114,11 @@ if selected_vars is not None:
         data.append(d)
 
 print "Found variables:", ' '.join(d.name for d in data)
+
+# Apply the metadata from file?
+for d in data:
+  if d.name in metadata:
+    d.atts.update(metadata[d.name])
 
 # Modify the time axis to have the appropriate units.
 def fix_time (var):
