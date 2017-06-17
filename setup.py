@@ -9,7 +9,7 @@ fstd_core = Extension ('pygeode.formats.fstd_core', sources=['fstd_core.c'], lib
 # PyGeode installation script
 
 setup (	name="pygeode-rpn",
-	version="2.1.0-UNRELEASED",
+	version="2.1.0",
         author="Mike Neish",
         install_requires=['pygeode'],
 	ext_modules=[fstd_core],
