@@ -379,7 +379,7 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
   nomvar = records['nomvar']
   is_coord = (nomvar == '>>  ') | (nomvar == '^^  ') | (nomvar == 'HY  ') | (nomvar == '!!  ')
   vertical_records = records[ (nomvar == 'HY  ') | (nomvar == '!!  ') ]
-  records = records[-is_coord]
+  records = records[~is_coord]
   del nomvar, is_coord
 
   # Group the records together
