@@ -1,3 +1,7 @@
+Version 2.1.1 (Nov 10, 2017)
+	* Use '~' operator instead of '-' for negation, for compatibility
+	  with recent version of numpy.
+
 Version 2.1.0 (Jun 17, 2017)
 	* Command-line option to control netCDF version for output files.
 	* Option to ignore etiket when grouping records together.
