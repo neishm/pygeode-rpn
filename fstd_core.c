@@ -48,6 +48,8 @@ extern int c_ezqkdef(int ni, int nj, char *grtyp,
                  int ig1, int ig2, int ig3, int ig4, int iunit);
 extern int c_ezgdef_fmem(int ni, int nj, char *grtyp, char *grref, 
                 int ig1ref, int ig2ref, int ig3ref, int ig4ref, float *ax, float *ay);
+extern int c_ezget_nsubgrids (int super_gdid);
+extern int c_ezget_subgridids (int super_gdid, int *subgridid);
 extern int c_gdll (int gdid,  float *lat, float *lon);
 extern int c_gdgaxes(int gdid,  float *ax, float *ay);
 extern int c_gdrls(int gdid);
@@ -1101,6 +1103,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
     // Skip coordinate records
     if (strncmp(records[i].nomvar,">>  ",4) == 0) continue;
     if (strncmp(records[i].nomvar,"^^  ",4) == 0) continue;
+    if (strncmp(records[i].nomvar,"^>  ",4) == 0) continue;
     if (strncmp(records[i].nomvar,"HY  ",4) == 0) continue;
     if (strncmp(records[i].nomvar,"!!  ",4) == 0) continue;
     // Construct the key for this record
@@ -1123,6 +1126,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
     // Get the grid id
     int gdid;
     int cartesian = 0;
+    int iunit = 0;  // File unit, for 'U' grids.
     switch (*grtyp) {
       case 'Z':;
         int xrec = find_xrec (records, num_records, i);
@@ -1150,6 +1154,13 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
         Py_DECREF(xobj);
         Py_DECREF(yobj);
         break;
+      case 'U':
+        // Get file unit (needed for 'U' grid).
+        {
+        RecordGetter_Object *data_func = (RecordGetter_Object *)(records[i].data_func);
+        FSTD_Unit_Object *file = (FSTD_Unit_Object*)(data_func->file);
+        iunit = file->iun;
+        }
       case 'A':
       case 'B':
       case 'E':
@@ -1157,7 +1168,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
       case 'L':
       case 'N':
       case 'S':
-        gdid = c_ezqkdef (ni, nj, grtyp, ig1, ig2, ig3, ig4, 0);
+        gdid = c_ezqkdef (ni, nj, grtyp, ig1, ig2, ig3, ig4, iunit);
         break;
       case 'X':
       case 'Y':
@@ -1201,12 +1212,42 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
     }
 
     // General case, we need to compute the lat/lon
-    c_gdll (gdid, (float*)lat->data, (float*)lon->data);
+    // For supergrids, need to loop over each subgrid.
+    if (*grtyp == 'U') {
+      int n = c_ezget_nsubgrids (gdid);
+      int subgdids[n];
+      c_ezget_subgridids (gdid, subgdids);
+      float *sublat = (float*)lat->data;
+      float *sublon = (float*)lon->data;
+      int g;
+      for (g = 0; g < n; g++, sublat+=ni*nj/n, sublon+=ni*nj/n) {
+        c_gdll (subgdids[g], sublat, sublon);
+      }
+    }
+    // For other grids, just need a single function call.
+    else {
+      c_gdll (gdid, (float*)lat->data, (float*)lon->data);
+    }
 
     // Extract x and y coordinates
     PyArrayObject *ax = (PyArrayObject*)PyArray_SimpleNew (1, dims+1, NPY_FLOAT32);
     PyArrayObject *ay = (PyArrayObject*)PyArray_SimpleNew (1, dims+0, NPY_FLOAT32);
-    c_gdgaxes (gdid, (float*)ax->data, (float*)ay->data);
+    // For supergrids, need to loop over each subgrid.
+    if (*grtyp == 'U') {
+      int n = c_ezget_nsubgrids (gdid);
+      int subgdids[n];
+      c_ezget_subgridids (gdid, subgdids);
+      float *subax = (float*)ax->data;
+      float *subay = (float*)ay->data;
+      int g;
+      for (g = 0; g < n; g++, subay+=nj/n) {
+        c_gdgaxes (subgdids[g], subax, subay);
+      }
+    }
+    // For other grids, just need a single function call.
+    else {
+      c_gdgaxes (gdid, (float*)ax->data, (float*)ay->data);
+    }
 
     // Done with the grid
 //    Note: disabled, now that we're using a single static dictionary to
@@ -1225,7 +1266,7 @@ static PyObject *get_latlon (PyObject *self, PyObject *args) {
       // Make sure the longitudes are monotonic
       // (workaround an issue with c_gdll?)
       float *l = (float*)lon->data;
-      if ((l[ni-2] > l[ni-3]) && (l[ni-1] < l[ni-2])) {
+      if ((l[ni-2] > l[ni-3]) && (l[ni-1] < l[ni-2]) && (*grtyp!='U')) {
         l[ni-1] += 360.;
       }
     }

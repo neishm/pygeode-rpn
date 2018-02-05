@@ -377,7 +377,7 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
   # Keep vertical descriptors in a separate array, though, because we'll need
   # to evaluate them once we know the vertical dimension of the variables.
   nomvar = records['nomvar']
-  is_coord = (nomvar == '>>  ') | (nomvar == '^^  ') | (nomvar == 'HY  ') | (nomvar == '!!  ')
+  is_coord = (nomvar == '>>  ') | (nomvar == '^^  ') | (nomvar == '^>  ') | (nomvar == 'HY  ') | (nomvar == '!!  ')
   vertical_records = records[ (nomvar == 'HY  ') | (nomvar == '!!  ') ]
   records = records[~is_coord]
   del nomvar, is_coord
