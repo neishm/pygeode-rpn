@@ -318,6 +318,47 @@ def attach_vertical_axes (varlist, vertical_records):
     # Save the new axis information back into the variable
     var.axes = tuple(axes)
 
+def make_subgrid (var):
+  import numpy as np
+  from pygeode.axis import NamedAxis, YAxis
+  from pygeode.var import Var, copy_meta
+  # Skip variables with no grid coordinates.
+  if not var.hasaxis('y'): return var
+  y_ind = var.whichaxis('y')
+  nsubgrids = len(np.where(var.y.values[:-1] > var.y.values[1:])[0]) + 1
+  subgrid = NamedAxis(range(nsubgrids), name='subgrid')
+  yaxis = YAxis (var.y.values[:len(var.y)/nsubgrids], name=var.y.name)
+  if isinstance(var, FSTD_Var):
+    # Tweak the data_funcs to reshape the field.
+    # Use nk to hold the subgrids.
+    nk = nsubgrids
+    nj = len(yaxis)
+    ni = len(var.x)
+    data_funcs = var.data_funcs.flatten()
+    data_funcs = [lambda shape=(nk,nj,ni), f=df: f().reshape(shape) for df in data_funcs]
+    data_funcs = np.array(data_funcs,dtype='O')
+    var.data_funcs = data_funcs.reshape(var.data_funcs.shape)
+    axes = list(var.axes)
+    axes[var.whichaxis('k')] = subgrid
+    axes[var.whichaxis('y')] = yaxis
+    var.axes = tuple(axes)
+    var.naxes = len(axes)
+    var.shape = tuple(map(len,axes))
+    var.size = reduce(lambda x,y: x*y, var.shape, 1)
+    return var
+  # Handled pre-loaded fields
+  if hasattr(var,'values'):
+    shape = var.values.shape
+    shape = shape[:y_ind] + (nsubgrids,-1) + shape[y_ind+1:]
+    values = var.values.reshape(shape)
+    axes = var.axes[:y_ind] + (subgrid,yaxis) + var.axes[y_ind+1:]
+    newvar = Var(axes,values=values)
+    copy_meta(var,newvar)
+    return newvar
+  # Skip derived fields
+  print 'warning: unhandled case for %s'%var.name
+  return var
+
 # Reduce the dimensionality of the given FSTD variable
 def reduce_dimensionality (var, squash_forecasts=False):
   # Skip derived fields
@@ -339,12 +380,13 @@ def reduce_dimensionality (var, squash_forecasts=False):
 
   return var.squeeze(*remove_axes)
 
+
 #####################################################################
 #
 # Open a file for read access.  Returns a generic 'Dataset' object.
 #
 #####################################################################
-def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False, fill_value=1e30, ignore_etiket=False):
+def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False, fill_value=1e30, ignore_etiket=False, subgrid_axis=False):
 
   from pygeode.formats import fstd_core
   import numpy as np
@@ -411,6 +453,10 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
 
   # Attach vertical coordinates
   attach_vertical_axes (varlist, vertical_records)
+
+  # Split supergrids into subgrids
+  if subgrid_axis:
+    varlist = [make_subgrid(var) for var in varlist]
 
   # Dimensionality reduction
   varlist = [reduce_dimensionality(var,squash_forecasts) for var in varlist]
