@@ -21,6 +21,9 @@ setup (	name="pygeode-rpn",
             'fstd = pygeode_rpn.fstd',
             'fstd_core = pygeode_rpn.fstd_core',
           ],
+          'pygeode.axis': [
+          'atmosphere_hybrid_sigma_ln_pressure_coordinate = pygeode_rpn.fstd:LogHybrid',
+          ]
         },
 	scripts=["fstd2nc"]
 )
