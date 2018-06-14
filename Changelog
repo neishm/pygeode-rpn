@@ -1,3 +1,11 @@
+Version 2.2.0 (Jun 14, 2018)
+	* Support for 'U' grids.
+	* New 'subgrid_axis' option to split 'U' grids into subgrids, which
+	  are stacked along a 'subgrid' axis.
+	* Use entry points for managing this plugin, instead of clobbering
+	  the pygeode module directories.
+	* Some support for detecting LogHybrid axes from converted netCDF files.
+
 Version 2.1.1 (Nov 10, 2017)
 	* Use '~' operator instead of '-' for negation, for compatibility
 	  with recent version of numpy.
