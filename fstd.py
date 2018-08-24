@@ -135,7 +135,7 @@ class FSTD_Var (Var):
     # Use the first dtype found.
     datyp = int(records[0]['datyp'])
     nbits = int(records[0]['nbits'])
-    dtype = {0:'float', 1:'float', 2:'uint', 3:'a', 4:'int', 5:'float', 134:'float', 130:'uint', 132:'int', 133:'float'}[datyp]
+    dtype = {0:'float', 1:'float', 2:'uint', 3:'a', 4:'int', 5:'float', 6:'float', 134:'float', 130:'uint', 132:'int', 133:'float'}[datyp]
     if dtype == 'a':
       dtype += str(nbits/8)
     else:

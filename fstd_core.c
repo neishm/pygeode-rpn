@@ -60,8 +60,9 @@ int datyp_to_numpy (int datyp, int nbits) {
     case 0:
     case 1:
     case 5:
-    case 134:
+    case 6:
     case 133:
+    case 134:
       return nbits > 32 ? NPY_FLOAT64 : NPY_FLOAT32;
       break;
     case 2:
