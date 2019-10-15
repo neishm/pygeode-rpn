@@ -13,11 +13,12 @@ if os.path.exists(os.path.join('python-rpn-libsrc','librmn','Makefile')):
   libdir = os.path.abspath('python-rpn-libsrc')
   check_call(['make', 'PWD='+libdir], cwd=libdir)
   fstd_core.libraries = ['rmn_019.2']
+  fstd_core.extra_compile_args.append('-g')
   fstd_core.extra_link_args.extend(['-L'+libdir+'/librmn','-lgfortran'])
 
 # PyGeode-RPN installation script
 setup (	name="pygeode-rpn",
-	version="2.2.0",
+	version="2.3.0-unreleased",
         author="Mike Neish",
         install_requires=['pygeode >= 1.2.0'],
 	ext_modules=[fstd_core],
