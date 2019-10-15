@@ -138,7 +138,7 @@ class FSTD_Var (Var):
     nbits = int(records[0]['nbits'])
     dtype = {0:'float', 1:'float', 2:'uint', 3:'a', 4:'int', 5:'float', 6:'float', 134:'float', 130:'uint', 132:'int', 133:'float'}[datyp]
     if dtype == 'a':
-      dtype += str(nbits/8)
+      dtype += str(nbits//8)
     else:
       dtype += '64' if nbits > 32 else '32'
 
@@ -328,7 +328,7 @@ def make_subgrid (var):
   y_ind = var.whichaxis('y')
   nsubgrids = len(np.where(var.y.values[:-1] > var.y.values[1:])[0]) + 1
   subgrid = NamedAxis(list(range(nsubgrids)), name='subgrid')
-  yaxis = YAxis (var.y.values[:len(var.y)/nsubgrids], name=var.y.name)
+  yaxis = YAxis (var.y.values[:len(var.y)//nsubgrids], name=var.y.name)
   if isinstance(var, FSTD_Var):
     # Tweak the data_funcs to reshape the field.
     # Use nk to hold the subgrids.
@@ -531,7 +531,7 @@ def encode_forecast_axis (varlist):
     if len(forecast) == 1 and forecast.values[0] == 0:
       npas = [0]
     else:
-      npas = forecast.values * 3600 / deet
+      npas = forecast.values * 3600 // deet
     npas_axis = NPASAxis(values=npas)
     varlist[i] = var.replace_axes(forecast=npas_axis)
     varlist[i].atts['deet'] = deet
@@ -660,7 +660,7 @@ def encode_latlon (varlist):
     # Create pseudo-unique grid identifiers
     ix = hash((tuple(xcoord.flatten()), tuple(ycoord.flatten()), grid_ig1, grid_ig2, grid_ig3, grid_ig4))
     ix1 = (ix%65536) + 32768
-    ix2 = ((ix/65536)%65536) + 32768
+    ix2 = ((ix//65536)%65536) + 32768
 
     var.atts['ig1'] = ix1
     var.atts['ig2'] = ix2
@@ -804,7 +804,7 @@ def create_records (varlist):
           record['nk'] = nk
           record['dateo'] = dateo
           record['ip1'] = ip1
-          record['ip2'] = npas*deet/3600
+          record['ip2'] = npas*deet//3600
           record['deet'] = deet
           record['npas'] = npas
           record['datyp'] = datyp
