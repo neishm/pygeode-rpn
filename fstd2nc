@@ -57,19 +57,24 @@ if args.backend == 'rpnpy':
 
 if args.vars is not None:
   selected_vars = args.vars.split(',')
-  print 'Looking for variables:', ' '.join(selected_vars)
+  print('Looking for variables:', ' '.join(selected_vars))
 else:
   selected_vars = None
 
 # Read metadata from a file?
 from collections import OrderedDict
-import ConfigParser
+try:
+  import configparser
+except ImportError:
+  # Python 2
+  import ConfigParser as configparser
+
 if args.metadata_file is None:
   metafiles = []
 else:
   metafiles = args.metadata_file
 metadata = OrderedDict()
-configparser = ConfigParser.SafeConfigParser()
+configparser = configparser.SafeConfigParser()
 for metafile in metafiles:
   configparser.readfp(metafile)
 for varname in configparser.sections():
@@ -78,7 +83,7 @@ for varname in configparser.sections():
 
 # Make sure input file exists
 if not exists(args.rpnfile):
-  print "Error: '%s' does not exist!"%(args.rpnfile)
+  print("Error: '%s' does not exist!"%(args.rpnfile))
   exit(1)
 
 # Check if output file already exists
@@ -86,17 +91,17 @@ if exists(args.ncfile):
   overwrite = False
   if stdout.isatty():
     while True:
-      print "Warning: '%s' already exists!  Overwrite? (y/n):"%(args.ncfile),
-      ans = raw_input()
+      print("Warning: '%s' already exists!  Overwrite? (y/n):"%(args.ncfile), end=' ')
+      ans = input()
       if ans.lower() in ('y','yes'):
         overwrite = True
         break
       if ans.lower() in ('n','no'):
         overwrite = False
         break
-      print "Sorry, invalid response."
+      print("Sorry, invalid response.")
   if overwrite is False:
-    print "Refusing to overwrite existing file '%s'."%(args.ncfile)
+    print("Refusing to overwrite existing file '%s'."%(args.ncfile))
     exit(1)
 
 
@@ -113,7 +118,7 @@ if selected_vars is not None:
       if any(v.hasaxis(d.xaxis) and v.hasaxis(d.yaxis) for v in data):
         data.append(d)
 
-print "Found variables:", ' '.join(d.name for d in data)
+print("Found variables:", ' '.join(d.name for d in data))
 
 # Apply the metadata from file?
 for d in data:
@@ -125,7 +130,7 @@ def fix_time (var):
   if not var.hasaxis('time'): return var
   new_time = type(var.time)(units=args.time_units, startdate=var.time.startdate, **var.time.auxarrays)
   return var.replace_axes(time=new_time)
-data = map(fix_time,data)
+data = list(map(fix_time,data))
 
 # Put the command-line invocation into the output file metadata
 data  = asdataset(data)

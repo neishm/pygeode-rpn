@@ -21,6 +21,7 @@
 
 from pygeode.axis import Axis, XAxis, YAxis, ZAxis, Lat, Lon, Hybrid, Pres
 from pygeode.timeaxis import StandardTime
+from functools import reduce
 class Dateo(Axis): pass   # Used for writing to FSTD files, not needed for reading
 class Forecast(Axis): pass
 class NPASAxis(Axis): pass  # Used for writing to FSTD files, not needed for reading
@@ -61,7 +62,7 @@ class FSTD_Var (Var):
     from pygeode.formats import fstd_core
     import numpy as np
 
-    name = str(records[0]['nomvar']).rstrip()
+    name = str(records[0]['nomvar'].decode()).rstrip()
 
     # Get the dates, forecast hours, and levels.
     dates = fstd_core.stamp2date(records['dateo'])
@@ -86,7 +87,7 @@ class FSTD_Var (Var):
     data_funcs[idate,iforecast,ilevel] = records['data_func']
 
     if any(f is None for f in data_funcs.flatten()):
-      print "Unable to construct a full field for %s - missing some expected records:"%name
+      print("Unable to construct a full field for %s - missing some expected records:"%name)
       from datetime import datetime, timedelta
       for i,date in enumerate(dates):
         # Convert to printable date
@@ -97,9 +98,9 @@ class FSTD_Var (Var):
           for k,level in enumerate(levels):
             header = "%s - %3gh - level = %8g"%(date,forecast,level)
             if data_funcs[i,j,k] is None:
-              print "%s: MISSING"%header
+              print("%s: MISSING"%header)
             else:
-              print "%s: found"%header
+              print("%s: found"%header)
       raise ValueError ("Missing some records that are needed to fill out the (time,forecast,level) dimensions.")
 
     self.data_funcs = data_funcs
@@ -109,10 +110,10 @@ class FSTD_Var (Var):
     faxis = Forecast (values=forecasts/3600.)
     faxis.atts['deet'] = int(records[0]['deet'])
 
-    nomvar = str(records[0]['nomvar']).rstrip()
-    typvar = str(records[0]['typvar']).rstrip()
-    etiket = str(records[0]['etiket']).rstrip()
-    grtyp = str(records[0]['grtyp']).rstrip()
+    nomvar = str(records[0]['nomvar'].decode()).rstrip()
+    typvar = str(records[0]['typvar'].decode()).rstrip()
+    etiket = str(records[0]['etiket'].decode()).rstrip()
+    grtyp = str(records[0]['grtyp'].decode()).rstrip()
     ni = int(records[0]['ni'])
     nj = int(records[0]['nj'])
     nk = int(records[0]['nk'])
@@ -192,7 +193,7 @@ def apply_masks (records, fill_value):
     key = tuple(records[m][i] for m in matchers)
     groups.setdefault(key,[]).append(i)
   masked = {}
-  for key, indices in groups.iteritems():
+  for key, indices in groups.items():
     the_mask = [i for i in indices if records['datyp'][i] == 2 and records['nbits'][i] == 1]
     non_mask = sorted(set(indices)-set(the_mask))
     # If there's no mask for this record, then nothing to do
@@ -214,7 +215,7 @@ def apply_masks (records, fill_value):
     # Applied the mask, so we don't need the mask record anymore.
     indices.remove(the_mask)
   # Collect all the indices that we will keep.
-  return records[sorted(i for indices in groups.itervalues() for i in indices)]
+  return records[sorted(i for indices in groups.values() for i in indices)]
 
 
 # Attach lat/lon arrays to a list of FSTD variables
@@ -306,7 +307,7 @@ def attach_vertical_axes (varlist, vertical_records):
 
       else:
         # Otherwise, look for a HY record (looser search criteria)
-        match = (vertical_records['nomvar'] == 'HY  ')
+        match = (vertical_records['nomvar'] == b'HY  ')
         if any(match):
           hy_record = vertical_records[match]
           ptop, rcoef, pref, A, B = fstd_core.get_hybrid_a_b(hy_record, levels)
@@ -326,7 +327,7 @@ def make_subgrid (var):
   if not var.hasaxis('y'): return var
   y_ind = var.whichaxis('y')
   nsubgrids = len(np.where(var.y.values[:-1] > var.y.values[1:])[0]) + 1
-  subgrid = NamedAxis(range(nsubgrids), name='subgrid')
+  subgrid = NamedAxis(list(range(nsubgrids)), name='subgrid')
   yaxis = YAxis (var.y.values[:len(var.y)/nsubgrids], name=var.y.name)
   if isinstance(var, FSTD_Var):
     # Tweak the data_funcs to reshape the field.
@@ -356,7 +357,7 @@ def make_subgrid (var):
     copy_meta(var,newvar)
     return newvar
   # Skip derived fields
-  print 'warning: unhandled case for %s'%var.name
+  print('warning: unhandled case for %s'%var.name)
   return var
 
 # Reduce the dimensionality of the given FSTD variable
@@ -419,8 +420,8 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
   # Keep vertical descriptors in a separate array, though, because we'll need
   # to evaluate them once we know the vertical dimension of the variables.
   nomvar = records['nomvar']
-  is_coord = (nomvar == '>>  ') | (nomvar == '^^  ') | (nomvar == '^>  ') | (nomvar == 'HY  ') | (nomvar == '!!  ')
-  vertical_records = records[ (nomvar == 'HY  ') | (nomvar == '!!  ') ]
+  is_coord = (nomvar == b'>>  ') | (nomvar == b'^^  ') | (nomvar == b'^>  ') | (nomvar == b'HY  ') | (nomvar == b'!!  ')
+  vertical_records = records[ (nomvar == b'HY  ') | (nomvar == b'!!  ') ]
   records = records[~is_coord]
   del nomvar, is_coord
 
@@ -432,7 +433,7 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
   # Hack in the level kind as a additional criteria for matching.
   levels, kind = fstd_core.decode_levels_v2(records['ip1'])
   all_keys.append(kind)
-  all_keys = zip(*all_keys)
+  all_keys = list(zip(*all_keys))
   all_keys = np.array(all_keys,dtype=[(a,records.dtype[a]) for a in unique_var_atts]+[('kind',int)])
   unique_keys, var_indices = np.unique(all_keys, return_inverse=True)
 
@@ -572,7 +573,7 @@ def encode_vertical (varlist):
   if len(hy_records) > 1:
     warn ("Multiple Hybrid axes detected.  The resulting file may not work the way you expect.")
 
-  vertical_records.extend(hy_records.values())
+  vertical_records.extend(list(hy_records.values()))
 
   # Check for log-hybrid levels
   bangbang_records = {}
@@ -599,7 +600,7 @@ def encode_vertical (varlist):
       bangbang_records[key]['ip1'] = var.atts.get('ig1',0)
       bangbang_records[key]['ip2'] = var.atts.get('ig2',0)
 
-  vertical_records.extend(bangbang_records.values())
+  vertical_records.extend(list(bangbang_records.values()))
 
   # Convert vertical axes to IP1Axis
   for varnum,var in enumerate(varlist):
@@ -725,7 +726,7 @@ def encode_latlon (varlist):
 
   if len(latlon_records) == 0:
     return np.empty([0], dtype=fstd_core.record_descr)
-  return np.concatenate(sum(latlon_records.values(),()))
+  return np.concatenate(sum(list(latlon_records.values()),()))
 
 
 # Coerce the variables into the expected FSTD dimensions
@@ -826,7 +827,7 @@ def check_fstd_axes (varlist):
   for var in varlist:
     incompatible_axes = [a for a in var.axes if not isinstance(a,compatible_axes)]
     if len(incompatible_axes) > 0:
-      raise TypeError, "Cannot fit the following axes from var '%s' into an FSTD structure: %s"%(var.name,incompatible_axes)
+      raise TypeError("Cannot fit the following axes from var '%s' into an FSTD structure: %s"%(var.name,incompatible_axes))
 
 #TODO: check for repeated axes
 

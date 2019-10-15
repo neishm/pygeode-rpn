@@ -24,6 +24,13 @@
 #include <string.h>
 #include <math.h>
 
+#if PY_MAJOR_VERSION >= 3
+#define PyString_FromStringAndSize PyUnicode_FromStringAndSize
+#define PyString_AsStringAndSize PyBytes_AsStringAndSize
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
+#endif
+
 // Wrap a Fortran call
 // Note: change this as needed on your platform.
 #define f77name(name) name ## _
@@ -114,12 +121,11 @@ typedef struct {
 static void FSTD_Unit_dealloc (FSTD_Unit_Object *self) {
   c_fstfrm(self->iun);
   c_fclos (self->iun);
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyTypeObject FSTD_Unit_Type = {
-  PyObject_HEAD_INIT(NULL)
-  0,                         /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "fstd_core.FSTD_Unit",     /*tp_name*/
   sizeof(FSTD_Unit_Object),  /*tp_basicsize*/
   0,                         /*tp_itemsize*/
@@ -173,12 +179,11 @@ static PyObject *RecordGetter_call (PyObject *self, PyObject *args, PyObject *kw
 
 static void RecordGetter_dealloc (RecordGetter_Object *self) {
   Py_DECREF(self->file);
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyTypeObject RecordGetter_Type = {
-  PyObject_HEAD_INIT(NULL)
-  0,                         /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "fstd_core.RecordGetter",  /*tp_name*/
   sizeof(RecordGetter_Object), /*tp_basicsize*/
   0,                         /*tp_itemsize*/
@@ -215,12 +220,11 @@ static PyObject *DataWrapper_call (DataWrapper_Object *self, PyObject *args, PyO
 
 static void DataWrapper_dealloc (DataWrapper_Object *self) {
   Py_DECREF(self->data);
-  self->ob_type->tp_free((PyObject*)self);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyTypeObject DataWrapper_Type = {
-  PyObject_HEAD_INIT(NULL)
-  0,                         /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "fstd_core.DataWrapper",  /*tp_name*/
   sizeof(DataWrapper_Object), /*tp_basicsize*/
   0,                         /*tp_itemsize*/
@@ -1329,9 +1333,33 @@ static PyMethodDef FST_Methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC initfstd_core(void) {
-  PyObject *m = Py_InitModule("fstd_core", FST_Methods);
-  import_array();
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "fstd_core",         /* m_name */
+        NULL,                /* m_doc */
+        -1,                  /* m_size */
+        FST_Methods,         /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
+
+
+static PyObject *
+moduleinit(void)
+{
+    PyObject *m;
+
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+#else
+    m = Py_InitModule("fstd_core", FST_Methods);
+#endif
+
+    import_array();
 
   Py_INCREF(&FSTD_Unit_Type);
   if (PyType_Ready(&FSTD_Unit_Type) < 0) return;
@@ -1353,5 +1381,21 @@ PyMODINIT_FUNC initfstd_core(void) {
 
   // Disable FSTD debug messages
   c_fstopi("MSGLVL", 4, 0);
+
+    return m;
+
 }
 
+#if PY_MAJOR_VERSION < 3
+    PyMODINIT_FUNC
+    initfstd_core(void)
+    {
+        moduleinit();
+    }
+#else
+    PyMODINIT_FUNC
+    PyInit_fstd_core(void)
+    {
+        return moduleinit();
+    }
+#endif
