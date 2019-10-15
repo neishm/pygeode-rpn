@@ -2,12 +2,20 @@
 
 from setuptools import setup, Extension
 import numpy as np
+import os
 
 # Extension modules
 fstd_core = Extension ('pygeode_rpn.fstd_core', sources=['fstd_core.c'], libraries=['rmn'])
 
-# PyGeode installation script
+# Check if the librmn static library is available for local compilation.
+if os.path.exists(os.path.join('python-rpn-libsrc','librmn','Makefile')):
+  from subprocess import check_call
+  libdir = os.path.abspath('python-rpn-libsrc')
+  check_call(['make', 'PWD='+libdir], cwd=libdir)
+  fstd_core.libraries = ['rmn_019.2']
+  fstd_core.extra_link_args.extend(['-L'+libdir+'/librmn','-lgfortran'])
 
+# PyGeode-RPN installation script
 setup (	name="pygeode-rpn",
 	version="2.2.0",
         author="Mike Neish",
