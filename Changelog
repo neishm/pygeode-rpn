@@ -1,9 +1,10 @@
-Version 2.3.0 (UNRELEASED)
+Version 2.3.0 (May 10, 2021)
 	* Support for datyp=6.
 	* Optional support for building librmn via python-rpn-libsrc
 	  submodule.  Facilitates external builds.
 	* Fixed installation via pip (was missing top-level __init__.py).
 	* Support for Python 3 (better late than never!)
+	* Fixed integer division for Python 3.
 
 Version 2.2.0 (Jun 14, 2018)
 	* Support for 'U' grids.
