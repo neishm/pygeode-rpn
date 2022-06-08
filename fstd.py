@@ -400,7 +400,7 @@ def open (filename, squash_forecasts=False, print_warnings=True, raw_list=False,
   # Read the records
   records = fstd_core.read_records(filename)
   # Filter out any missing records
-  records = records[records['nomvar']!='']
+  records = records[records['nomvar']!=b'']
 
   # Warn about any raw binary records.
   raw_binary_records = records[records['datyp'] == 0]
