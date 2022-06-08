@@ -18,7 +18,7 @@ if os.path.exists(os.path.join('python-rpn-libsrc','librmn','Makefile')):
 
 # PyGeode-RPN installation script
 setup (	name="pygeode-rpn",
-	version="2.3.0",
+	version="2.3.1",
         author="Mike Neish",
         install_requires=['pygeode >= 1.2.0'],
 	ext_modules=[fstd_core],

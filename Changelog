@@ -1,3 +1,7 @@
+Version 2.3.1 (Jun 8, 2022)
+	* Fix crash when file contains deleted / overwritten records with
+	  Python3 interface.
+
 Version 2.3.0 (May 10, 2021)
 	* Support for datyp=6.
 	* Optional support for building librmn via python-rpn-libsrc
